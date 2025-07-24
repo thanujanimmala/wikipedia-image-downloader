@@ -1,0 +1,77 @@
+body {
+  font-family: "Segoe UI", sans-serif;
+  width: 310px;
+  padding: 10px;
+  margin: 0;
+  background-color: #f9f9f9;
+  color: #333;
+}
+
+#status {
+  margin: 10px 0;
+  font-size: 14px;
+  text-align: center;
+  color: #555;
+}
+
+#loading {
+  display: none;
+  text-align: center;
+  font-size: 14px;
+  color: #777;
+  padding: 10px 0;
+}
+
+#images {
+  max-height: 260px;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 10px;
+  margin-bottom: 10px;
+  padding-right: 5px;
+}
+
+.img-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.img-tile input[type="checkbox"] {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  transform: scale(1.2);
+  z-index: 1;
+  background-color: white;
+  border-radius: 3px;
+}
+
+.img-tile img {
+  width: 100%;
+  max-width: 100%;
+  max-height: 80px;
+  object-fit: contain;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+button {
+  width: 100%;
+  padding: 8px 0;
+  font-size: 14px;
+  background-color: #0078d7;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+button:hover {
+  background-color: #005fa3;
+}
