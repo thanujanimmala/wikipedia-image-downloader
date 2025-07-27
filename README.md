@@ -121,5 +121,3 @@ This project is licensed under the MIT License.
 You are free to use, modify, and distribute it for personal or commercial purposes.
 
 ---
-
-
