@@ -110,6 +110,11 @@ wikipedia-image-downloader/
 
 ---
 
+## 🔗 GitHub Repository
+
+🔗 https://github.com/thanujanimmala/wikipedia-image-downloader
+
+
 ## 📜 License
 
 This project is licensed under the MIT License.  
@@ -117,6 +122,4 @@ You are free to use, modify, and distribute it for personal or commercial purpos
 
 ---
 
-## 🔗 GitHub Repository
 
-🔗 https://github.com/thanujanimmala/wikipedia-image-downloader
