@@ -1,99 +1,99 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const loading = document.getElementById("loading");
-  const imagesDiv = document.getElementById("images");
-  const statusDiv = document.getElementById("status");
-  const downloadBtn = document.getElementById("downloadBtn");
+async function getImages() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-  let articleTitle = "image"; // fallback title
-
-  loading.style.display = "block";
-  imagesDiv.innerHTML = "";
-  statusDiv.textContent = "";
-
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    const tabId = tabs[0].id;
-    chrome.scripting.executeScript(
-      {
-        target: { tabId },
-        func: () => {
-          const container = document.querySelector("#mw-content-text") || document.body;
-          const title = document.title.split(" - ")[0].replace(/[^a-z0-9]/gi, "_").toLowerCase();
-
-          const imgs = Array.from(container.querySelectorAll("img"));
-          const isTexty = (alt) => alt && /^[a-z0-9\s\-:,.'"]{5,}$/.test(alt.trim().toLowerCase());
-
-          const filtered = imgs.filter(img => {
-            const src = img.src || "";
-            const w = img.naturalWidth;
-            const h = img.naturalHeight;
-            const a = w / (h || 1);
-            const alt = img.alt;
-
-            const tooSmall = w < 50 || h < 50;
-            const oddAspect = a > 6 || a < 0.15;
-            const textImage = isTexty(alt);
-            const badClasses = ["logo", "icon", "navbox", "footer", "metadata", "infobox"];
-            const classHit = badClasses.some(cls => img.closest("." + cls));
-
-            return !tooSmall && !oddAspect && !textImage && !classHit && src.startsWith("http");
-          });
-
-          return { title, urls: filtered.map(img => img.src) };
-        },
-      },
-      (results) => {
-        if (!results || !results[0]) return;
-        const { title, urls } = results[0].result;
-        articleTitle = title;
-        loading.style.display = "none";
-
-        if (urls.length === 0) {
-          statusDiv.textContent = "No suitable images found.";
-          return;
-        }
-
-        urls.forEach((url, index) => {
-          const tile = document.createElement("div");
-          tile.className = "img-tile";
-
-          const checkbox = document.createElement("input");
-          checkbox.type = "checkbox";
-          checkbox.checked = true;
-          checkbox.dataset.url = url;
-
-          const thumb = document.createElement("img");
-          thumb.src = url;
-
-          tile.appendChild(checkbox);
-          tile.appendChild(thumb);
-          imagesDiv.appendChild(tile);
+  const result = await chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    func: () => {
+      const keywords = ['icon', 'logo', 'sprite', 'badge', 'favicon'];
+      const imgs = Array.from(document.images);
+      return imgs
+        .map(img => ({
+          src: img.currentSrc || img.src || img.getAttribute("data-src") || "",
+          alt: img.alt || "",
+          width: img.naturalWidth || img.width,
+          height: img.naturalHeight || img.height
+        }))
+        .filter(img => {
+          if (!img.src || img.width < 100 || img.height < 100) return false;
+          const lowerSrc = img.src.toLowerCase();
+          return !keywords.some(k => lowerSrc.includes(k));
         });
-
-        statusDiv.textContent = `Found ${urls.length} images. You can uncheck any.`;
-      }
-    );
+    }
   });
-  downloadBtn.addEventListener("click", () => {
-    const checkboxes = imagesDiv.querySelectorAll("input[type='checkbox']:checked");
-    if (checkboxes.length === 0) {
-      statusDiv.textContent = "No images selected.";
+
+  return result[0].result;
+}
+
+function createImageGrid(images) {
+  const container = document.getElementById("images");
+  container.innerHTML = "";
+
+  images.forEach((imgObj, index) => {
+    const wrapper = document.createElement("div");
+    wrapper.className = "img-tile";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = true;
+
+    const img = document.createElement("img");
+    img.src = imgObj.src;
+    img.alt = imgObj.alt || `image${index + 1}`;
+    img.onerror = () => wrapper.remove(); // hide broken
+
+    wrapper.appendChild(checkbox);
+    wrapper.appendChild(img);
+    container.appendChild(wrapper);
+  });
+
+  document.getElementById("status").textContent = `${images.length} images found`;
+}
+
+function getSelectedImages() {
+  const tiles = document.querySelectorAll(".img-tile");
+  const selected = [];
+
+  tiles.forEach((tile, index) => {
+    const checkbox = tile.querySelector("input[type='checkbox']");
+    const img = tile.querySelector("img");
+    if (checkbox.checked && img && img.src) {
+      selected.push(img.src);
+    }
+  });
+
+  return selected;
+}
+
+function downloadImages(imageUrls) {
+  imageUrls.forEach((url, index) => {
+    const ext = url.split(".").pop().split(/\#|\?/)[0];
+    const filename = `image${index + 1}.${ext}`;
+    chrome.downloads.download({
+      url: url,
+      filename: filename
+    });
+  });
+
+  window.close(); // close popup after download
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+  document.getElementById("loading").style.display = "block";
+  const images = await getImages();
+  document.getElementById("loading").style.display = "none";
+
+  if (images.length > 0) {
+    createImageGrid(images);
+  } else {
+    document.getElementById("status").textContent = "No suitable images found";
+  }
+
+  document.getElementById("downloadBtn").addEventListener("click", () => {
+    const selected = getSelectedImages();
+    if (selected.length === 0) {
+      alert("Please select at least one image to download.");
       return;
     }
-    checkboxes.forEach((cb, index) => {
-      const url = cb.dataset.url;
-      const ext = (url.split('.').pop().split(/#|\?|&/)[0] || 'jpg').slice(0, 5);
-      chrome.downloads.download({
-        url,
-        filename: `WikipediaImages/${articleTitle}${index + 1}.${ext}`,
-        conflictAction: "uniquify"
-      });
-    });
-
-    statusDiv.textContent = `Downloading ${checkboxes.length} image(s)...`;
-
-    // Automatically close the popup after short delay
-    setTimeout(() => {
-      window.close();
-    }, 1000);
+    downloadImages(selected);
   });
 });
